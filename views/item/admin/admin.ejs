@@ -1,0 +1,82 @@
+<style>
+  body {
+    font-family: "Itim", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f1f1f1; /* พื้นหลังของหน้าเว็บ */
+  }
+
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  h3 {
+    color: #343a40;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .list-group-item {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+
+  .list-group-item a {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 18px;
+  }
+
+  .list-group-item:hover {
+    background-color: #e9ecef;
+  }
+
+  .col.text-right {
+    text-align: right;
+    margin-top: 20px;
+  }
+
+  .btn {
+    background-color: #cf0202;
+    color: #ffffff;
+
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+  }
+
+  .btn:hover {
+    color: #dee2e6;
+    background-color: #630101;
+  }
+</style>
+<div class="container">
+  <h3>จัดการข้อมูลและโมเดลสำหรับพยากรณ์</h3>
+  <ul class="list-group">
+    <li class="list-group-item">
+      <a href="/admin/managemodel">จัดการข้อมูลโมเดล</a>
+    </li>
+    <li class="list-group-item">
+      <a href="/admin/managedata">จัดการข้อมูลนักศึกษา</a>
+    </li>
+    <li class="list-group-item">
+      <a href="/admin/comment">ความคิดเห็นจากผู้ใช้งาน</a>
+    </li>
+  </ul>
+  <div class="col text-right">
+    <a href="/logout" class="btn">ออกจากระบบ</a>
+  </div>
+</div>

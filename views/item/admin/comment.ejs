@@ -1,0 +1,120 @@
+<style>
+  body {
+    font-family: "Itim", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f1f1f1;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  h3 {
+    color: #343a40;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .list-group-item {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn-delete {
+    background-color: #cf0202;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+
+  .btn-delete:hover {
+    background-color: #630101;
+  }
+
+  .col.text-right {
+    text-align: right;
+    margin-top: 20px;
+  }
+</style>
+<div class="container">
+  <h3>ความคิดเห็นของนักศึกษา</h3>
+  <ul class="list-group" id="commentsList"></ul>
+  <button
+    onclick="window.location.href='/admin';"
+    class="btn btn-sm btn-dark float-right"
+  >
+    ย้อนกลับ
+  </button>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch("/admin/getComments")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          const commentsList = document.getElementById("commentsList");
+          data.comments.forEach((comment) => {
+            const listItem = document.createElement("li");
+            listItem.classList.add("list-group-item");
+            listItem.innerHTML = `
+                            <div>
+                                <p>${comment.comment}</p>
+                                <small>รหัสนักศึกษา: ${
+                                  comment.studentId
+                                }</small><br>
+                                <small>วันที่: ${new Date(
+                                  comment.date
+                                ).toLocaleString()}</small>
+                            </div>
+                            <button class="btn-delete" onclick="deleteComment('${
+                              comment._id
+                            }')">ลบ</button>
+                        `;
+            commentsList.appendChild(listItem);
+          });
+        } else {
+          console.error("Error fetching comments:", data.message);
+        }
+      })
+      .catch((error) => console.error("Error:", error));
+  });
+
+  function deleteComment(commentId) {
+    if (confirm("คุณต้องการลบความคิดเห็นนี้หรือไม่?")) {
+      fetch(`/admin/deleteComment/${commentId}`, {
+        method: "DELETE",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            alert("ความคิดเห็นถูกลบเรียบร้อยแล้ว");
+            location.reload();
+          } else {
+            alert("เกิดข้อผิดพลาดในการลบความคิดเห็น");
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("เกิดข้อผิดพลาดในการลบความคิดเห็น");
+        });
+    }
+  }
+</script>

@@ -1,0 +1,314 @@
+<style>
+  body {
+    font-family: "Itim", sans-serif;
+    font-size: 18px;
+  }
+
+  #prediction-result {
+    color: green;
+    width: 50%;
+    margin: 20px auto;
+    text-align: center;
+  }
+
+  #accuracy-result,
+  #f1-score-result,
+  #precision-result,
+  #recall-result {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    position: relative;
+  }
+
+  [data-tooltip] {
+    position: relative;
+    cursor: pointer;
+  }
+
+  [data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #636363;
+    color: #fff;
+    padding: 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  [data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+</style>
+<div class="container mt-5">
+  <div class="row">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="text-center">
+          ระบบแนะนำการเลือกศึกษาหลักสูตรระดับปริญญาตรีสาขาวิทยาการคอมพิวเตอร์
+          ด้วยเทคนิคโครงข่ายประสาทเทียม
+        </h5>
+      </div>
+      <div class="card-body">
+        <p>
+          <strong>ชื่อ-นามสกุล:</strong>
+          <%= user.displayName %>
+        </p>
+        <p id="userEmail">
+          <strong>รหัสนักศึกษา:</strong>
+          <span id="studentId">
+            <%= user.emails[0].value.split('@')[0] %>
+          </span>
+        </p>
+        <p>
+          <strong>เพศ:</strong>
+          <%= user.gender %>
+        </p>
+        <p>
+          <strong>วุฒิการศึกษา:</strong>
+          <%= user.education %>
+        </p>
+
+        <hr />
+
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>ชื่อหลักสูตรรายวิชา</th>
+              <th>เกรด</th>
+            </tr>
+          </thead>
+          <tbody id="gradesTableBody">
+            <tr>
+              <td>Introduction to Data Science</td>
+              <td>
+                <%= student ? student.grade1 || 'Not found' : 'Not found' %>
+              </td>
+            </tr>
+            <tr>
+              <td>Principles of Computer Programming</td>
+              <td>
+                <%= student ? student.grade2 || 'Not found' : 'Not found' %>
+              </td>
+            </tr>
+            <tr>
+              <td>Programming Methodology</td>
+              <td>
+                <%= student ? student.grade3 || 'Not found' : 'Not found' %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <% if (!student) { %>
+          <div class="alert alert-warning" role="alert">ไม่พบข้อมูล</div>
+        <% } %>
+
+        <div class="d-flex justify-content-between">
+          <button type="button" class="btn btn-primary" id="trainModel">
+            แนะนำการเลือกหลักสูตร
+          </button>
+          <a href="/logout" class="btn btn-danger">ออกจากระบบ</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal for Forecast -->
+<div class="modal fade" id="forecastModal" tabindex="-1" role="dialog" aria-labelledby="forecastModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="forecastModalLabel">
+          ผลการพยากรณ์หลักสูตร
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body">
+        <h5>รายละเอียดของโมเดล</h5>
+        <div id="accuracy-result" data-tooltip="ความแม่นยำของโมเดลในการทำนาย"></div>
+        <div id="f1-score-result" data-tooltip="การวัดความสมดุลระหว่าง Precision และ Recall"></div>
+        <div id="precision-result" data-tooltip="ความถูกต้องของการทำนายที่เป็นบวก"></div>
+        <div id="recall-result" data-tooltip="ความสามารถในการจับกรณีบวกที่แท้จริง"></div>
+        <div id="prediction-result" style="margin-top: 20px"></div>
+
+        <!-- Comment Box Section -->
+        <div id="comment-section" style="margin-top: 20px">
+          <h6>ความคิดเห็นของคุณ:</h6>
+          <textarea class="form-control" id="user-comment" rows="3"
+            placeholder="กรุณาใส่ความคิดเห็นของคุณที่นี่..."></textarea>
+          <button type="button" class="btn btn-success btn-sm mt-2" id="submitComment">
+            ส่งความคิดเห็น
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="closeModalBtn" data-dismiss="modal">
+          ปิด
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const studentIdElement = document.getElementById("studentId");
+    let studentId = studentIdElement.textContent.trim();
+    if (studentId.length === 12) {
+      studentId = studentId.slice(0, 11) + "-" + studentId.slice(11);
+    }
+
+    studentIdElement.textContent = studentId;
+  });
+
+  $("#forecastModal").on("show.bs.modal", function (event) {
+    fetch("/user/getModels")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          const modelSelect = document.getElementById("modelSelect");
+          modelSelect.innerHTML = "";
+          data.models.forEach((model) => {
+            const option = document.createElement("option");
+            option.value = model.filename;
+            option.textContent = model.filename;
+            modelSelect.appendChild(option);
+          });
+        } else {
+          console.error("Error fetching models:", data.message);
+        }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+      });
+  });
+
+  document.getElementById("trainModel").addEventListener("click", function () {
+    // Retrieve user data
+    const userData = {
+      gender: "<%= user.gender %>",
+      education: "<%= user.education %>",
+      grade1: "<%= student ? student.grade1 || 'Not found' : 'Not found' %>",
+      grade2: "<%= student ? student.grade2 || 'Not found' : 'Not found' %>",
+      grade3: "<%= student ? student.grade3 || 'Not found' : 'Not found' %>",
+    };
+  
+    // Check for missing data (i.e., 'Not found')
+    const missingData = Object.values(userData).some((value) => value === "Not found");
+  
+    if (missingData) {
+      alert("ไม่สามารถทำการพยากรณ์ได้ เนื่องจากมีข้อมูลที่ขาดหายไป");
+      return; // Stop further processing if data is missing
+    }
+  
+    // Retrieve the selected model from local storage
+    const modelFilename = localStorage.getItem("activeModel");
+  
+    // Check if a model has been selected
+    if (!modelFilename) {
+      alert("ไม่สามารถทำการพยากรณ์ได้ เนื่องจากไม่มีโมเดลที่ถูกเลือก");
+      return;
+    }
+  
+    console.log("โมเดลที่ถูกเลือก:", modelFilename);
+    alert(`เริ่มทำการพยากรณ์ด้วยโมเดล: ${modelFilename}`);
+  
+    console.log("ข้อมูลผู้ใช้ที่จะส่ง:", userData);
+  
+    fetch("/user/trainModel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ modelFilename, ...userData }),
+    })
+      .then((response) => {
+        console.log("ผลลัพธ์การตอบกลับจากเซิร์ฟเวอร์:", response);
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          // Update results in modal
+          document.getElementById("accuracy-result").innerText = `Accuracy: ${data.accuracy}`;
+          document.getElementById("f1-score-result").innerText = `F1-Score: ${data.f1Score}`;
+          document.getElementById("precision-result").innerText = `Precision: ${data.precision}`;
+          document.getElementById("recall-result").innerText = `Recall: ${data.recall}`;
+          document.getElementById("prediction-result").innerText = `ผลลัพธ์การแนะนำเลือกหลักสูตรที่ควรศึกษาต่อคือ : หลักสูตร ${data.prediction}`;
+  
+          // Show modal when results are ready
+          $("#forecastModal").modal("show");
+        } else {
+          // Handle error case
+          document.getElementById("accuracy-result").innerText = `Error: ${data.message}`;
+          document.getElementById("f1-score-result").innerText = `Error: ${data.message}`;
+          document.getElementById("precision-result").innerText = `Error: ${data.message}`;
+          document.getElementById("recall-result").innerText = `Error: ${data.message}`;
+          document.getElementById("prediction-result").innerText = `Error: ${data.message}`;
+  
+          // Show modal with error
+          $("#forecastModal").modal("show");
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        document.getElementById("accuracy-result").innerText = "An error occurred while training the model.";
+  
+        // Show modal with error
+        $("#forecastModal").modal("show");
+      });
+  });
+  
+
+  document.getElementById("submitComment").addEventListener("click", function (event) {
+    event.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
+  
+    const comment = document.getElementById("user-comment").value;
+    const studentId = document.getElementById("studentId").textContent.trim(); // ดึงรหัสนักศึกษา
+  
+    if (comment.trim()) {
+      fetch("/user/submitComment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ comment, studentId }), // ส่งรหัสนักศึกษาไปด้วย
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            alert("ความคิดเห็นของคุณได้ถูกส่งแล้ว ขอบคุณครับ/ค่ะ!");
+            document.getElementById("user-comment").value = "";
+          } else {
+            alert("เกิดข้อผิดพลาดในการส่งความคิดเห็น กรุณาลองอีกครั้ง");
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("เกิดข้อผิดพลาดในการส่งความคิดเห็น กรุณาลองอีกครั้ง");
+        });
+    } else {
+      alert("กรุณาใส่ความคิดเห็นก่อนส่ง");
+    }
+  });
+  
+  document
+    .getElementById("closeModalBtn")
+    .addEventListener("click", function () {
+      $("#forecastModal").modal("hide");
+      window.location.reload();
+    });
+</script>

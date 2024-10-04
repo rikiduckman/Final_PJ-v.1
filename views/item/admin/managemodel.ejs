@@ -1,0 +1,257 @@
+<div class="container mt-5">
+  <!-- Back Button -->
+  <button onclick="window.location.href='/admin';" class="btn btn-sm btn-dark float-right">
+    ย้อนกลับ
+  </button>
+
+  <!-- Page Title -->
+  <h3 class="mb-4">จัดการข้อมูลโมเดลพยากรณ์</h3>
+  <hr />
+
+  <!-- Upload Form -->
+  <form action="/upload-arff" method="post" enctype="multipart/form-data" id="uploadArffForm">
+    <div class="form-row align-items-center">
+      <div class="col-auto">
+        <div class="custom-file">
+          <input type="file" class="custom-file-input" id="arffFileInput" name="arffFile" accept=".arff" required
+            onchange="updateArffFileNameLabel()" />
+          <label class="custom-file-label" for="arffFileInput" id="arffFileLabel">File.arff</label>
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">อัปโหลด</button>
+        <button type="button" class="btn btn-secondary ml-2" onclick="resetArffForm()">
+          ล้าง
+        </button>
+      </div>
+    </div>
+    <hr />
+  </form>
+
+<!-- Uploaded Files Section -->
+<% if (uploadedFiles.length > 0) { %>
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">โมเดลที่ถูกอัปโหลด</h5>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead class="thead-light">
+            <tr>
+              <th>เลือก</th> <!-- New column for checkbox -->
+              <th>ชื่อ</th>
+              <th>วันที่/เวลา</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% uploadedFiles.forEach(file => { %>
+              <tr id="row-<%= file.filename %>">
+                <td>
+                  <input type="checkbox" name="selectedModel" value="<%= file.filename %>" onchange="toggleModelUsage(this, '<%= file.filename %>')" />
+                </td> <!-- Checkbox to select model -->
+                <td>
+                  <%= file.filename %>
+                </td>
+                <td>
+                  <%= moment(file.uploadedAt).format('D/M/YYYY HH:mm:ss') %>
+                </td>
+                <td>
+                  <a href="javascript:void(0);" class="btn btn-sm btn-warning" onclick="openEditArffModal('<%= file.filename %>')">แก้ไข</a>
+                  <a href="javascript:void(0);" class="btn btn-sm btn-danger" onclick="deleteArffFile('<%= file.filename %>'); return false;">ลบ</a>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <p>ไม่พบข้อมูล...</p>
+<% } %>
+
+        <!-- Edit Modal -->
+        <div class="modal" id="editArffModal" tabindex="-1" role="dialog">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">เปลี่ยนชื่อ</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <form id="editArffForm" method="post">
+                  <div class="form-group">
+                    <input type="text" class="form-control" id="newArffFilename" name="newFilename" required
+                      data-old-filename="" />
+                  </div>
+                  <button type="submit" class="btn btn-primary">บันทึก</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert Section -->
+        <div id="arffAlert" class="alert alert-success mt-3" role="alert" style="display: none"></div>
+</div>
+
+<script>
+  function toggleModelUsage(checkbox, filename) {
+    const checkboxes = document.querySelectorAll('input[name="selectedModel"]:checked');
+  
+    // ตรวจสอบว่ามีการเลือกมากกว่า 1 โมเดลหรือไม่
+    if (checkboxes.length > 1) {
+      // แสดงการแจ้งเตือน
+      showArffAlert("ไม่สามารถเลือกโมเดลได้มากกว่า 1 โมเดล", "danger");
+  
+      // ยกเลิกการเลือก checkbox ล่าสุด
+      checkbox.checked = false;
+      return;
+    }
+  
+    const isChecked = checkbox.checked;
+  
+    if (isChecked) {
+      // บันทึกโมเดลที่ถูกเลือกใน local storage
+      localStorage.setItem("activeModel", filename);
+    } else {
+      // ลบการบันทึกถ้าไม่มีโมเดลใดถูกเลือก
+      localStorage.removeItem("activeModel");
+    }
+  
+    // ส่งคำขอเปิด/ปิดการใช้งานโมเดล (ถ้ายังต้องการใช้ backend)
+    fetch(`/admin/toggle-model/${filename}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ enable: isChecked }),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        const alertType = isChecked ? "success" : "danger"; // Set alert color based on the action
+        showArffAlert(result.message, alertType);
+      })
+      .catch((error) => {
+        console.error("Error toggling model:", error);
+        showArffAlert("ไม่สามารถเปิดใช้งานโมเดลได้", "danger");
+      });
+  }
+  
+  window.onload = function() {
+    const activeModel = localStorage.getItem("activeModel");
+  
+    if (activeModel) {
+      const checkbox = document.querySelector(`input[value="${activeModel}"]`);
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    }
+  };
+
+  function showArffAlert(message, type = "success") {
+    const alertBox = document.getElementById("arffAlert");
+    alertBox.style.display = "block";
+    alertBox.className = `alert alert-${type} mt-3`;
+    alertBox.innerText = message;
+    setTimeout(() => {
+      alertBox.style.display = "none";
+    }, 3000);
+  }
+
+  // Edit ARFF Form Submit Function
+  document
+    .getElementById("editArffForm")
+    .addEventListener("submit", function (event) {
+      event.preventDefault();
+      const oldFilename = document
+        .getElementById("newArffFilename")
+        .getAttribute("data-old-filename");
+      const newFilename = document.getElementById("newArffFilename").value;
+
+      fetch(`/admin/edit-arff/${oldFilename}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newFilename: newFilename }),
+      })
+        .then((response) => response.json())
+        .then((result) => {
+          if (result.success) {
+            $("#editArffModal").modal("hide");
+            showArffAlert(result.alertMessage, "success");
+            setTimeout(() => {
+              window.location.href = "/admin/managemodel";
+            }, 3000);
+          } else {
+            showArffAlert(result.message || "Error editing file.", "danger");
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          showArffAlert("Error editing file.", "danger");
+        });
+    });
+
+  function deleteArffFile(filename) {
+    if (confirm(`ต้องการลบ ${filename} หรือไม่?`)) {
+      fetch(`/admin/delete-arff/${filename}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok.");
+          }
+          return response.json();
+        })
+        .then((result) => {
+          if (result.success) {
+            document.getElementById(`row-${filename}`).remove();
+            showArffAlert(
+              result.alertMessage || "File deleted successfully.",
+              "success"
+            );
+          } else {
+            showArffAlert(
+              result.message || "Error deleting ARFF file.",
+              "danger"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          showArffAlert("Error deleting ARFF file.", "danger");
+        });
+    }
+  }
+
+  // Open Edit Modal Function
+  function openEditArffModal(filename) {
+    const form = document.getElementById("editArffForm");
+    const newFilenameInput = document.getElementById("newArffFilename");
+    newFilenameInput.setAttribute("data-old-filename", filename);
+    newFilenameInput.value = filename;
+
+    $("#editArffModal").modal("show");
+  }
+
+  // Update ARFF File Name Label Function
+  function updateArffFileNameLabel() {
+    const input = document.getElementById("arffFileInput");
+    const label = document.getElementById("arffFileLabel");
+    label.textContent = input.files[0] ? input.files[0].name : "Choose file...";
+  }
+
+  // Reset ARFF Form Function
+  function resetArffForm() {
+    document.getElementById("uploadArffForm").reset();
+    updateArffFileNameLabel(); // Update file label after reset
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>

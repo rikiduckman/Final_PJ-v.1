@@ -10,7 +10,13 @@ exports.home = async (req, res) => {
 
 exports.logout = (req, res) => {
   try {
-    res.redirect("/");
+    req.session.destroy((err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send("Server Error");
+      }
+      res.redirect("/");
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");

@@ -8,7 +8,7 @@ const passport = require('./src/config/passport');
 const connectDB = require('./src/config/dbUser');
 const connectDBModels = require('./src/config/dbModel');
 const authRoutes = require('./src/middleware/googleAuth');
-
+const moment = require('moment');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -53,7 +53,7 @@ app.use((req, res, next) => {
   res.locals.error = req.flash('error');
   next();
 });
-
+app.locals.moment = moment;
 // Start server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

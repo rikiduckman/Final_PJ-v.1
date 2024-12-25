@@ -1,17 +1,20 @@
 const mongoose = require('mongoose');
 
-const getCSVDataModel = (collectionName) => {
-  return mongoose.models[collectionName] || mongoose.model(collectionName, 
-    new mongoose.Schema({
-      studentId: String,
-      gender: String,
-      education: String,
-      grade1: String,
-      grade2: String,
-      grade3: String,
-      uploadedAt: Date
-    }), 
-    collectionName);
-};
+// Define the schema for storing file metadata and data
+const fileDataSchema = new mongoose.Schema({
+  filename: { type: String, required: true },
+  data: [{
+    studentId: String,
+    gender: String,
+    education: String,
+    grade1: String,
+    grade2: String,
+    grade3: String,
+    uploadedAt: Date,
+  }],
+  uploadedAt: { type: Date, default: Date.now },
+});
 
-module.exports = getCSVDataModel;
+const FileData = mongoose.model('FileData', fileDataSchema);
+
+module.exports = FileData;

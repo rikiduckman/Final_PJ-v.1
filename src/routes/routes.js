@@ -1,48 +1,94 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { home, admin, logout} = require('../controllers/PublicController');
-const { isAuthenticated, isAdmin } = require('../middleware/auth');
-const googleauth = require('../middleware/googleAuth');
-const upload = require('../config/upload');
-const { managemodel, uploadArff, deleteArff, editArff, getModels, trainModel, toggleModel} = require('../controllers/UploadModelsController');
-const { deleteData, uploadData, editData, user, previewFile, managedata } = require('../controllers/UploadDataController');
-const { submitComment, comment, getComments, deleteComment } = require('../controllers/UploadComment')
-// Middleware for Google authentication
-router.use('/auth', googleauth);
+const { home, admin, logout } = require("../controllers/PublicController");
+const { isAuthenticated, isAdmin } = require("../middleware/auth");
+const googleauth = require("../middleware/googleAuth");
+const upload = require("../config/upload");
+const {
+  managemodel,
+  uploadArff,
+  deleteArff,
+  editArff,
+  getModels,
+  trainModel,
+  toggleModel,
+} = require("../controllers/UploadModelsController");
+const {
+  deleteData,
+  uploadData,
+  editData,
+  user,
+  previewFile,
+  managedata,
+} = require("../controllers/UploadDataController");
+const {
+  submitComment,
+  comment,
+  getComments,
+  deleteComment,
+} = require("../controllers/UploadComment");
+router.use("/auth",googleauth);
 
-// Public routes
-router.get('/', home);
-router.get('/logout',logout);
+router.get("/",home);
+router.get("/logout",logout);
 
-// User routes
-router.get('/user',user);
+router.get("/user",isAuthenticated, user);
 
-// Admin routes
-router.get('/admin',admin);
+router.get("/admin",isAuthenticated, isAdmin, admin);
 
-// Manage Data routes
-router.get('/admin/managedata', managedata);
-router.post('/upload-csv', upload.single('file'), uploadData);
-router.delete('/admin/delete-csv/:filename', deleteData);
-router.put('/admin/edit-csv/:filename', editData);
-router.get('/preview/:filename', previewFile);
+router.get("/admin/managedata",isAuthenticated, isAdmin, managedata);
+router.post(
+  "/upload-csv",
+  upload.single("file"),
+  isAuthenticated, 
+  isAdmin,
+  uploadData
+);
+router.delete(
+  "/admin/delete-csv/:filename",
+  isAuthenticated, 
+  isAdmin,
+  deleteData
+);
+router.put("/admin/edit-csv/:filename", isAuthenticated, isAdmin, editData);
+router.get("/preview/:filename",previewFile);
 
-// Manage model routes
-router.get('/admin/managemodel', managemodel);
-router.post('/upload-arff', upload.single('arffFile'), uploadArff);
-router.delete('/admin/delete-arff/:filename', deleteArff);
-router.put('/admin/edit-arff/:filename', editArff);
+router.get("/admin/managemodel", isAuthenticated, isAdmin, managemodel);
+router.post(
+  "/upload-arff",
+  upload.single("arffFile"),
+  isAuthenticated, 
+  isAdmin,
+  uploadArff
+);
+router.delete(
+  "/admin/delete-arff/:filename",
+  isAuthenticated,
+  isAdmin,
+  deleteArff
+);
+router.put("/admin/edit-arff/:filename", isAuthenticated, isAdmin, editArff);
 
-// User
-router.get('/user/getModels', getModels);
-router.post('/user/trainModel', trainModel);
+router.get("/user/getModels", isAuthenticated, getModels);
+router.post("/user/trainModel", isAuthenticated, trainModel);
 
-// Comment
-router.get('/admin/comment', comment);
-router.get('/admin/getComments', getComments);
-router.delete('/admin/deleteComment/:id', deleteComment);
-router.post('/user/submitComment', submitComment);
+router.get("/admin/comment", isAuthenticated, isAdmin, comment);
+router.get("/admin/getComments", isAuthenticated, isAdmin, getComments);
+router.delete(
+  "/admin/deleteComment/:id",
+  isAuthenticated,
+  isAdmin,
+  deleteComment
+);
+router.post("/user/submitComment", isAuthenticated, submitComment);
 
-// Manage model routes
-router.post('/admin/toggle-model/:filename', toggleModel);
+router.post("/admin/toggle-model/:filename", isAuthenticated, toggleModel);
+
+router.use((req, res, next) => {
+  res
+    .status(404)
+    .send(
+      '<script>alert("404 Error: The page you are looking for does not exist."); window.history.back();</script>'
+    );
+});
 module.exports = router;

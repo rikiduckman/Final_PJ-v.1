@@ -57,7 +57,7 @@
                     <%= file.filename %>
                   </td>
                   <td>
-                    <%= file.uploadedAt %>
+                    <%= moment(file.uploadedAt).format('D/M/YYYY HH:mm:ss') %>
                   </td>
                   <td>
                     <a href="/preview/<%= file.filename %>" class="btn btn-sm btn-info">แสดง</a>
@@ -228,7 +228,6 @@
                 csvBody.appendChild(tr);
               });
 
-              // Add "Show more" button if there are more than 10 rows
               if (rows.length > 11) {
                 const remainingRows = rows.slice(11);
                 const showMoreTr = document.createElement("tr");

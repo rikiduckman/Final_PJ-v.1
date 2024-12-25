@@ -2,33 +2,8 @@ const mongoose = require("mongoose");
 const fs = require("fs");
 const csv = require("csv-parser");
 const connectDB = require("../config/dbUser");
-const getCSVDataModel = require("../models/User");
-
-let uploadedFiles = [];
-
-// Load uploaded files from JSON file
-const loadUploadedFiles = () => {
-  try {
-    uploadedFiles = JSON.parse(fs.readFileSync("uploadedFiles.json", "utf8"));
-  } catch (err) {
-    console.log("Error reading uploadedFiles.json:", err.message);
-    uploadedFiles = [];
-  }
-};
-
-// Save uploaded files to JSON file
-const saveUploadedFiles = () => {
-  try {
-    fs.writeFileSync("uploadedFiles.json", JSON.stringify(uploadedFiles, null, 2));
-  } catch (err) {
-    console.error("Error saving uploadedFiles:", err);
-  }
-};
-
-// Initialize uploaded files on startup
-loadUploadedFiles();
-
-// Find student in all collections
+const FileData = require("../models/User");
+const moment = require("moment");
 async function findStudentInAllCollections(studentId) {
   try {
     const db = mongoose.connection.db;
@@ -56,12 +31,11 @@ async function findStudentInAllCollections(studentId) {
   }
 }
 
-// Handle data management page
-exports.managedata = (req, res) => {
+exports.managedata = async (req, res) => {
   try {
+    const uploadedFiles = await FileData.find(); 
     res.render("item/admin/managedata", {
       locals: { title: "จัดการข้อมูลนักศึกษา" },
-      alert: "",
       uploadedFiles,
     });
   } catch (err) {
@@ -70,17 +44,17 @@ exports.managedata = (req, res) => {
   }
 };
 
-// Handle data upload
 exports.uploadData = async (req, res) => {
   try {
     const filePath = req.file.path;
+    const modelName = req.file.originalname.replace(/\.[^/.]+$/, "");
+
     const results = [];
-    const modelName = req.file.originalname.replace(/\.[^/.]+$/, ""); // Use file name as collection name
 
     fs.createReadStream(filePath)
       .pipe(csv())
       .on("headers", (headers) => {
-        console.log("CSV Headers:", headers); // Log headers to verify
+        console.log("CSV Headers:", headers);
       })
       .on("data", (data) => {
         const trimmedData = Object.keys(data).reduce((acc, key) => {
@@ -88,15 +62,14 @@ exports.uploadData = async (req, res) => {
           return acc;
         }, {});
         console.log("Trimmed Data row:", trimmedData);
-        console.log("StudentID:", trimmedData["StudentID"]); // Verify StudentID extraction
+        console.log("StudentID:", trimmedData["StudentID"]);
         results.push(trimmedData);
       })
       .on("end", async () => {
         try {
           await connectDB();
 
-          const dataModel = getCSVDataModel(modelName);
-
+          // Prepare the data to store in MongoDB
           const validData = results.map((data) => ({
             studentId: data["StudentID"],
             gender: data["Gender"],
@@ -109,30 +82,29 @@ exports.uploadData = async (req, res) => {
 
           console.log("Valid data to store:", validData);
 
-          await dataModel.create(validData);
-          fs.unlinkSync(filePath);
-
-          uploadedFiles.push({
+          const fileData = new FileData({
             filename: modelName,
-            uploadedAt: new Date().toLocaleString(),
+            data: validData,
           });
-          saveUploadedFiles();
+
+          await fileData.save();
+          fs.unlinkSync(filePath);
 
           res.render("item/admin/managedata", {
             locals: { title: "จัดการข้อมูลนักศึกษา" },
-            uploadedFiles,
+            uploadedFiles: await FileData.find(),
             alertMessage: "อัปโหลดสำเร็จ",
           });
 
           console.log("Data stored in MongoDB");
         } catch (err) {
           console.error("Error storing data in MongoDB:", err);
-          res.status(500).send("Error storing data in MongoDB.");
+          res.status(500).json({ success: false, alertMessage: "Error storing data in MongoDB." });
         }
       });
   } catch (err) {
     console.error("Server Error:", err);
-    res.status(500).send("Server Error");
+    res.status(500).json({ success: false, alertMessage: "Server Error" });
   }
 };
 
@@ -140,12 +112,12 @@ exports.uploadData = async (req, res) => {
 exports.deleteData = async (req, res) => {
   try {
     const filename = req.params.filename;
-    const dataModel = getCSVDataModel(filename);
 
-    await dataModel.collection.drop();
+    const result = await FileData.deleteOne({ filename });
 
-    uploadedFiles = uploadedFiles.filter((file) => file.filename !== filename);
-    saveUploadedFiles();
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ success: false, message: "File not found in MongoDB." });
+    }
 
     res.json({ success: true, alertMessage: "ลบสำเร็จ" });
   } catch (err) {
@@ -157,46 +129,37 @@ exports.deleteData = async (req, res) => {
 // Handle data edit
 exports.editData = async (req, res) => {
   try {
-    const oldFilename = req.params.filename;
-    const newFilename = req.body.newFilename.trim();
+    const { oldFilename, newFilename } = req.body;
 
-    if (!newFilename) {
-      return res.status(400).json({ success: false, message: "New filename is required." });
+    if (!oldFilename || !newFilename) {
+      console.error("Missing oldFilename or newFilename in request body.");
+      return res.status(400).json({ success: false, message: "โปรดระบุชื่อไฟล์เก่าและชื่อไฟล์ใหม่" });
     }
 
-    await connectDB();
-
-    const oldModelName = oldFilename.replace(/\.[^/.]+$/, "");
-    const newModelName = newFilename.replace(/\.[^/.]+$/, "");
-
-    const db = mongoose.connection.db;
-
-    const oldCollectionExists = await db.listCollections({ name: oldModelName }).toArray();
-    if (oldCollectionExists.length === 0) {
-      return res.status(404).json({ success: false, message: "Old collection not found." });
+    // ตรวจสอบว่า oldFilename กับ newFilename ไม่เหมือนกัน
+    if (oldFilename === newFilename) {
+      return res.status(400).json({ success: false, message: "ชื่อไฟล์เก่าและใหม่ไม่สามารถเหมือนกันได้" });
     }
 
-    const newCollectionExists = await db.listCollections({ name: newModelName }).toArray();
-    if (newCollectionExists.length > 0) {
-      return res.status(400).json({ success: false, message: "New collection already exists." });
+    // ดำเนินการอัปเดตชื่อไฟล์ใน MongoDB
+    const result = await FileData.findOneAndUpdate(
+      { filename: oldFilename },
+      { filename: newFilename },
+      { new: true }
+    );
+
+    if (!result) {
+      console.error("File not found in the database.");
+      return res.status(404).json({ success: false, message: "ไม่พบไฟล์ในระบบฐานข้อมูล" });
     }
 
-    await db.renameCollection(oldModelName, newModelName);
-
-    const fileIndex = uploadedFiles.findIndex((file) => file.filename === oldFilename);
-    if (fileIndex !== -1) {
-      uploadedFiles[fileIndex].filename = newFilename;
-      saveUploadedFiles();
-    } else {
-      return res.status(404).json({ success: false, message: "File not found in uploadedFiles." });
-    }
-
-    res.json({ success: true, alertMessage: "เปลี่ยนชื่อสำเร็จ" });
+    res.json({ success: true, message: "แก้ไขชื่อไฟล์สำเร็จ", updatedFile: result });
   } catch (err) {
-    console.error("Error editing data in MongoDB:", err);
-    res.status(500).json({ success: false, message: `Error editing data in MongoDB: ${err.message}` });
+    console.error("Error editing filename in MongoDB:", err);
+    res.status(500).json({ success: false, message: "เกิดข้อผิดพลาดในระบบ" });
   }
 };
+
 
 // Display user data
 exports.user = async (req, res) => {
@@ -225,19 +188,16 @@ exports.user = async (req, res) => {
   }
 };
 
-// Preview file data
 exports.previewFile = async (req, res) => {
   try {
     const filename = req.params.filename;
-    const modelName = filename.replace(/\.[^/.]+$/, "");
-    const dataModel = getCSVDataModel(modelName);
-    const data = await dataModel.find();
+    const fileData = await FileData.findOne({ filename });
 
-    if (!data.length) {
+    if (!fileData) {
       return res.status(404).send("File not found");
     }
 
-    res.render("item/admin/preview", { data, locals: { title: "แสดงข้อมูลไฟล์" } });
+    res.render("item/admin/preview", { data: fileData.data, locals: { title: "แสดงข้อมูลไฟล์" } });
   } catch (err) {
     console.error("Error previewing file:", err);
     res.status(500).send("Server Error");

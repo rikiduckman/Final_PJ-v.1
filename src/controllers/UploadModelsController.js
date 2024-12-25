@@ -53,7 +53,6 @@ exports.deleteArff = async (req, res) => {
       return res.status(404).json({ success: false, message: "ไม่พบ" });
     }
 
-    // Delete the file from GridFS
     await bucket.delete(file._id);
     await filesCollection.deleteOne({ filename });
 
@@ -72,7 +71,6 @@ exports.deleteArff = async (req, res) => {
   }
 };
 
-// Edit ARFF file
 exports.editArff = async (req, res) => {
   try {
     const oldFilename = req.params.filename;
@@ -165,10 +163,10 @@ exports.getModels = async (req, res) => {
 exports.trainModel = async (req, res) => {
   const modelFilename = req.body.modelFilename;
   let userData = [
-    req.body.gender === "Male" ? 1 : 2,
-    req.body.education === "Grade 12" ? 1 : req.body.education === "Vocational" ? 2 : 3,
+    req.body.gender === "Male" ? 0 : 1,
+    req.body.education === "Grade 12" ? 0 : req.body.education === "Vocational" ? 1 : 2,
     ...[req.body.grade1, req.body.grade2, req.body.grade3].map(grade =>
-      ({ A: 1, "B+": 2, B: 2, "C+": 3, C: 3, "D+": 4, D: 4, F: 5, I: 5 }[grade] || 1)
+      ({ A: 0, "B+": 1, B: 1, "C+": 2, C: 2, "D+": 3, D: 3, F: 4, I: 4 , W: 4}[grade] || 1)
     )
   ];
 

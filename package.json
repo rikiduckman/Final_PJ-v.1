@@ -23,6 +23,7 @@
     "express-flash": "^0.0.2",
     "express-session": "^1.18.0",
     "fs": "^0.0.1-security",
+    "gl": "^8.0.2",
     "install": "^0.13.0",
     "ml-confusion-matrix": "^2.0.0",
     "moment": "^2.30.1",

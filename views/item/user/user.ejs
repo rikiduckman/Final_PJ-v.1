@@ -54,28 +54,38 @@
     <div class="card">
       <div class="card-header">
         <h5 class="text-center">
-          ระบบแนะนำการเลือกศึกษาหลักสูตรระดับปริญญาตรีสาขาวิทยาการคอมพิวเตอร์
-          ด้วยเทคนิคโครงข่ายประสาทเทียม
+          ระบบแนะนำการเลือกศึกษาหลักสูตรระดับปริญญาตรีสาขาวิทยาการคอมพิวเตอร์ ด้วยเทคนิคโครงข่ายประสาทเทียม
         </h5>
       </div>
       <div class="card-body">
-        <p>
-          <strong>ชื่อ-นามสกุล:</strong>
-          <%= user.displayName %>
-        </p>
+        <p><strong>ชื่อ-นามสกุล:</strong> <%= user.displayName %></p>
+
         <p id="userEmail">
-          <strong>รหัสนักศึกษา:</strong>
-          <span id="studentId">
-            <%= user.emails[0].value.split('@')[0] %>
-          </span>
+          <strong>รหัสนักศึกษา:</strong> <span id="studentId"><%= user.emails[0].value.split('@')[0] %></span>
         </p>
+
         <p>
           <strong>เพศ:</strong>
-          <%= user.gender %>
+          <% if (user.gender === "Not found") { %>
+            <select id="genderSelect">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          <% } else { %>
+            <%= user.gender %>
+          <% } %>
         </p>
+
         <p>
           <strong>วุฒิการศึกษา:</strong>
-          <%= user.education %>
+          <% if (user.education === "Not found") { %>
+            <select id="educationSelect">
+              <option value="Grade12">Grade12</option>
+              <option value="Vocational">Vocational</option>
+            </select>
+          <% } else { %>
+            <%= user.education %>
+          <% } %>
         </p>
 
         <hr />
@@ -87,26 +97,71 @@
               <th>เกรด</th>
             </tr>
           </thead>
-          <tbody id="gradesTableBody">
+          <tbody>
             <tr>
-              <td>Introduction to Data Science</td>
+              <td>Introduction to Computer Science and Information Technology</td>
               <td>
-                <%= student ? student.grade1 || 'Not found' : 'Not found' %>
+                <% if (student && student.grade1 && student.grade1 !== "Not found") { %>
+                  <%= student.grade1 %>
+                <% } else { %>
+                  <select id="grade1Select">
+                    <option value="A">A</option>
+                    <option value="B+">B+</option>
+                    <option value="B">B</option>
+                    <option value="C+">C+</option>
+                    <option value="C">C</option>
+                    <option value="D+">D+</option>
+                    <option value="D">D</option>
+                    <option value="F">F</option>
+                    <option value="W">W</option>
+                    <option value="I">I</option>
+                  </select>
+                <% } %>
               </td>
             </tr>
             <tr>
               <td>Principles of Computer Programming</td>
               <td>
-                <%= student ? student.grade2 || 'Not found' : 'Not found' %>
+                <% if (student && student.grade2 && student.grade2 !== "Not found") { %>
+                  <%= student.grade2 %>
+                <% } else { %>
+                  <select id="grade2Select">
+                    <option value="A">A</option>
+                    <option value="B+">B+</option>
+                    <option value="B">B</option>
+                    <option value="C+">C+</option>
+                    <option value="C">C</option>
+                    <option value="D+">D+</option>
+                    <option value="D">D</option>
+                    <option value="F">F</option>
+                    <option value="W">W</option>
+                    <option value="I">I</option>
+                  </select>
+                <% } %>
               </td>
             </tr>
             <tr>
               <td>Programming Methodology</td>
               <td>
-                <%= student ? student.grade3 || 'Not found' : 'Not found' %>
+                <% if (student && student.grade3 && student.grade3 !== "Not found") { %>
+                  <%= student.grade3 %>
+                <% } else { %>
+                  <select id="grade3Select">
+                    <option value="A">A</option>
+                    <option value="B+">B+</option>
+                    <option value="B">B</option>
+                    <option value="C+">C+</option>
+                    <option value="C">C</option>
+                    <option value="D+">D+</option>
+                    <option value="D">D</option>
+                    <option value="F">F</option>
+                    <option value="W">W</option>
+                    <option value="I">I</option>
+                  </select>
+                <% } %>
               </td>
             </tr>
-          </tbody>
+          </tbody>          
         </table>
 
         <% if (!student) { %>
@@ -123,6 +178,7 @@
     </div>
   </div>
 </div>
+
 
 
 <!-- Modal for Forecast -->
@@ -198,16 +254,27 @@
   });
 
   document.getElementById("trainModel").addEventListener("click", function () {
-    // Retrieve user data
-    const userData = {
-      gender: "<%= user.gender %>",
-      education: "<%= user.education %>",
-      grade1: "<%= student ? student.grade1 || 'Not found' : 'Not found' %>",
-      grade2: "<%= student ? student.grade2 || 'Not found' : 'Not found' %>",
-      grade3: "<%= student ? student.grade3 || 'Not found' : 'Not found' %>",
-    };
+    // Retrieve user data, using selected values if "Not found"
+    const gender = document.getElementById("genderSelect")
+      ? document.getElementById("genderSelect").value
+      : "<%= user.gender %>";
+    const education = document.getElementById("educationSelect")
+      ? document.getElementById("educationSelect").value
+      : "<%= user.education %>";
+    const grade1 = document.getElementById("grade1Select")
+      ? document.getElementById("grade1Select").value
+      : "<%= student ? student.grade1 || 'Not found' : 'Not found' %>";
+    const grade2 = document.getElementById("grade2Select")
+      ? document.getElementById("grade2Select").value
+      : "<%= student ? student.grade2 || 'Not found' : 'Not found' %>";
+    const grade3 = document.getElementById("grade3Select")
+      ? document.getElementById("grade3Select").value
+      : "<%= student ? student.grade3 || 'Not found' : 'Not found' %>";
   
-    // Check for missing data (i.e., 'Not found')
+    // Assign the retrieved or selected values to userData
+    const userData = { gender, education, grade1, grade2, grade3 };
+  
+    // Check for missing data after user selections
     const missingData = Object.values(userData).some((value) => value === "Not found");
   
     if (missingData) {
@@ -272,6 +339,7 @@
       });
   });
   
+  
 
   document.getElementById("submitComment").addEventListener("click", function (event) {
     event.preventDefault(); // ป้องกันการรีเฟรชหน้าเว็บ
@@ -305,10 +373,8 @@
     }
   });
   
-  document
-    .getElementById("closeModalBtn")
-    .addEventListener("click", function () {
-      $("#forecastModal").modal("hide");
-      window.location.reload();
-    });
+  document.getElementById("closeModalBtn").addEventListener("click", function () {
+    $("#forecastModal").modal("hide");
+  });
+  
 </script>

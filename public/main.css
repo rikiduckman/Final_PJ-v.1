@@ -1,9 +1,10 @@
 body {
     font-family: "Itim", sans-serif;
-    background-color: #f8f9fa;
+    background-color: #fafafa;
+    color: #333;
+    margin: 0;
+    padding: 0;
 }
-
-/*home page*/
 
 .container-home {
     display: flex;
@@ -13,57 +14,73 @@ body {
     height: 100vh;
     padding: 0 15px;
     text-align: center;
+    background-color: #ffffff;
 }
 
 .logo-container-home {
-    margin-bottom: 20px;
+    transition: transform 0.3s ease;
 }
 
 .logo-home {
-    max-width: 200px;
+    max-width: 300px;
+}
+
+.logo-container-home:hover {
+    transform: scale(1.05);
 }
 
 .content-title-home {
     font-size: 1.5rem;
-    font-weight: 500;
-    margin-bottom: 20px;
+    font-weight: 400;
+    color: #444;
+    margin-bottom: 30px;
+    line-height: 1.4;
+    letter-spacing: 1px;
 }
 
 .container-login-home {
-    padding: 10px 20px;
+    padding: 15px 30px;
     font-size: 1.125rem;
-    font-weight: 600;
-    border-radius: .375rem;
+    font-weight: 500;
+    border-radius: 6px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
 }
 
 .login-button-home {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 5px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    width: 100%;
+    text-align: center;
     transition: background-color 0.3s ease;
+    display: inline-block;
 }
 
 .login-button-home:hover {
     background-color: #0056b3;
-    color: white;
 }
 
 .note-home {
-    margin-top: 15px;
+    margin-top: 20px;
     font-size: 0.875rem;
+    color: #777;
+    line-height: 1.4;
+    font-weight: 400;
 }
 
-/*manage data by admin*/
+@media (max-width: 768px) {
+    .content-title-home {
+        font-size: 1.2rem;
+    }
 
-.table-wrapper {
-    max-height: 500px;
-    overflow-y: auto;
-  }
-  .sticky-header {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background-color: white;
+    .logo-home {
+        max-width: 150px;
+    }
 }

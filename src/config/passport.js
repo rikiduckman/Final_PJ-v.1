@@ -13,12 +13,10 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-// Serialize user to the session
 passport.serializeUser((user, done) => {
   done(null, user);
 });
 
-// Deserialize user from the session
 passport.deserializeUser((obj, done) => {
   done(null, obj);
 });

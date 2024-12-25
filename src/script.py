@@ -36,7 +36,7 @@ def train_model(filepath, user_data=None):
     X = imputer.fit_transform(X)
 
     # Split the data with a fixed random_state for consistency
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, shuffle=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=97, shuffle=True)
 
     # Normalize data
     scaler = StandardScaler()
@@ -44,14 +44,15 @@ def train_model(filepath, user_data=None):
     X_test = scaler.transform(X_test)
 
     clf = MLPClassifier(
-        hidden_layer_sizes=(50,),  
-        max_iter=1000,  
-        solver='adam',  
-        learning_rate_init=0.1,
-        alpha=0.0001,  
-        early_stopping=True,  
-        tol=1e-4,
-        random_state=100
+        hidden_layer_sizes=(400,300,250),   # Adjusted number of nodes in each layer
+        max_iter=8000,                  # Increased max iterations for thorough training
+        solver='adam',
+        learning_rate_init=0.00005,         # Reduced learning rate for finer adjustments
+        alpha=0.000001,                     # Lower regularization term for flexibility
+        early_stopping=True,
+        tol=1e-5,                        # Adjusted tolerance for better training
+        batch_size=16,                   # Reduced batch size for more frequent updates
+        random_state=97
     )
     
     try:
@@ -66,9 +67,9 @@ def train_model(filepath, user_data=None):
     f1 = f1_score(y_test, y_pred, average='weighted')
     precision = precision_score(y_test, y_pred, average='weighted', zero_division=1)
     recall = recall_score(y_test, y_pred, average='weighted')
-
+    
     # Define a mapping for the prediction
-    prediction_mapping = {1.0: 'CS', 2.0: 'IT'}
+    prediction_mapping = {0.0: 'CS', 1.0: 'IT'}
 
     # Predict for user data if provided
     user_prediction = None
@@ -91,12 +92,13 @@ def train_model(filepath, user_data=None):
         except Exception as e:
             print(f"An error occurred while predicting user data: {e}")
             return
-
+    
     # Print the metrics and prediction
-    print(f'Accuracy: {accuracy * 100:.2f}%')
-    print(f'F1-Score: {f1 * 100:.2f}%')
-    print(f'Precision: {precision * 100:.2f}%')
-    print(f'Recall: {recall * 100:.2f}%')
+    print(f'Accuracy: {round(accuracy * 100)}%')
+    print(f'F1-Score: {round(f1 * 100)}%')
+    print(f'Precision: {round(precision * 100)}%')
+    print(f'Recall: {round(recall * 100)}%')
+
     
     if user_prediction is not None:
         print(f'Prediction: {user_prediction_label}')
